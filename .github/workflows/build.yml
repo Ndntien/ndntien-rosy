@@ -1,1 +1,41 @@
+name: Build Redmi 5 (rosy) NetHunter Kernel
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup build environment
+        run: |
+          sudo apt update
+          sudo apt install -y bc bison build-essential curl flex gcc-aarch64-linux-gnu \
+             git libncurses5-dev libssl-dev zip
+
+      - name: Build Kernel
+        run: |
+          cd kernel
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make rosy_defconfig
+          make -j$(nproc)
+          cd ..
+
+      - name: Pack with AnyKernel3
+        run: |
+          cp kernel/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+          cd AnyKernel3
+          zip -r9 ../rosy-nethunter-kernel.zip *
+          cd ..
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rosy-nethunter-kernel
+          path: rosy-nethunter-kernel.zip
